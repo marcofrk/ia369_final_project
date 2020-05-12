@@ -1,0 +1,7 @@
+Dataset:
+	COCO/2017:  
+		size: 25 GB		
+		http://cocodataset.org/
+	Open_image_v4:
+		size: 565 GB	
+		https://storage.googleapis.com/openimages/web/index.html

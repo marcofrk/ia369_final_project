@@ -1,0 +1,9 @@
+Model:
+	Tensorflow detection model zoo: github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md
+
+Single Shot Detector:
+	ssd_mobilenet_v2_coco
+	ssd_mobilenet_v2_quantized_coco
+	ssd_inception_v2_coco
+	ssd_mobilenetv2_oidv4
+	
