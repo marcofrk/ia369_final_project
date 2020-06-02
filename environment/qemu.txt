@@ -1,3 +1,0 @@
-QEMU
-VM
-Rasp support: azeria-labs.com/emulate-raspberry-pi-with-qemu/
