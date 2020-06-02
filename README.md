@@ -38,5 +38,5 @@ Run the docker image:
 ```
 # docker run -it --rm -p 8888:8888 ml-experience
 ```
-
-This command will return a link at the terminal. Just click on it and enjoy ;)!
+Click at the returned link, as shown at the image below:
+<img src="./data/images/docker_run.png"
