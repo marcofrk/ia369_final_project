@@ -1,3 +1,14 @@
+# Copyright 2020 NXP Semiconductors
+# Copyright 2020 Marco Franchi
+#
+# This file was copied from NXP Semiconductors PyeIQ project respecting its
+# rights. All the modified parts below are according to NXP Semiconductors PyeIQ
+# project`s LICENSE terms.
+#
+# Reference: https://source.codeaurora.org/external/imxsupport/pyeiq/
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 import numpy as np
 from contextlib import contextmanager
 from datetime import timedelta

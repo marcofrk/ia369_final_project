@@ -1,3 +1,6 @@
+# Copyright 2020 Marco Franchi
+# SPDX-License-Identifier: MIT
+
 FROM python:3.6.3
 FROM ubuntu:18.04
 
@@ -12,8 +15,8 @@ RUN apt-get install -y gir1.2-gst-plugins-base-1.0 \
 
 RUN apt-get install -y pkg-config \
 		libgirepository1.0-dev \
-		gcc \ 
-		libcairo2-dev 
+		gcc \
+		libcairo2-dev
 
 RUN apt-get install -y gstreamer1.0-plugins-bad \
 		gstreamer1.0-plugins-good \
