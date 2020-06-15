@@ -10,36 +10,34 @@ In order to reproduce it, please, follow the sections below.
 * [data][data]: models, images, and videos used at the executable paper
 * [deliver][deliver]: the executable paper
 
-## How to execute the paper
+## How to Execute the Paper
 
-### Install docker
+### Install Docker
 For linux users, do the following:
-```
+```console
 # apt-get update
 # apt-get install docker.io
 ```
 
 ### Build the Dockerfile
 Clone this repository:
-```
+```console
 $ git clone https://github.com/marcofrk/ia369_final_project.git
 ```
 
 Enter at the repo and build the docker container:
-```
+```console
 $ cd ia369_final_project
 # docker build -t ml-experience .
 ```
 
----
-**Note:**
-Build tested at Ubuntu 18.04.
 
----
+**NOTE:**
+This tutorial is fully based on GNU/Linux Distribution `Ubuntu 18.04` as host machine.
 
-### Execute the paper
+### Execute the Paper
 Run the docker image:
-```
+```console
 # docker run -it --rm -p 8888:8888 ml-experience
 ```
 Click at the returned link, as shown at the image below:
