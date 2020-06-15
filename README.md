@@ -1,5 +1,5 @@
 # IA 369 - 1S/2020: Final Project - Executable Papers
-![Build][workflow-build] ![GitHub issues][license]
+![GitHub issues][license]
 
 This repository contains the executable paper wrote during the IA369 - 1S/2020 lectures.
 In order to reproduce it, please, follow the sections below.
@@ -32,7 +32,7 @@ $ cd ia369_final_project
 ```
 
 ---
-**Note:** 
+**Note:**
 Build tested at Ubuntu 18.04.
 
 ---
@@ -47,5 +47,4 @@ Click at the returned link, as shown at the image below:
 
 [data]: https://github.com/marcofrk/ia369_final_project/tree/master/data
 [deliver]: https://github.com/marcofrk/ia369_final_project/tree/master/deliver
-[License]: https://img.shields.io/badge/License-GPL%20v3-blue.svg
-[workflow-build]: https://github.com/diegohdorta/pyeiq/workflows/Build/badge.svg
+[License]: https://img.shields.io/badge/License-MIT-blue
