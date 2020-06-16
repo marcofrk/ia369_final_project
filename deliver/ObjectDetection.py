@@ -27,6 +27,8 @@ import re
 import sys
 import time
 import cv2
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 
@@ -36,6 +38,38 @@ GObject.threads_init()
 Gst.init(None)
 
 Object = collections.namedtuple('Object', ['id', 'score', 'bbox'])
+
+class graphs:
+    def __init__(self):
+        self.x_labels = ['OpenCV', 'V4L2', 'GStreamer', 'SVGOverlay']
+        self.y_labels = None
+        self.width = 0.35
+        self.ax = None
+
+    def autolabel(self, rects):
+        """Attach a text label above each bar in *rects*, displaying its height."""
+        for rect in rects:
+            height = rect.get_height()
+            self.ax.annotate('{}'.format(height),
+                    xy=(rect.get_x() + rect.get_width() / 2, height),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha='center', va='bottom')
+
+    def start(self, y, name):
+        x = np.arange(len(self.x_labels))
+        fig, self.ax = plt.subplots()
+        rects = self.ax.bar(x, y, self.width, label=name)
+
+        self.ax.set_ylabel(name)
+        self.ax.set_title('%s per Multimedia Solution' % name)
+        self.ax.set_xticks(x)
+        self.ax.set_xticklabels(self.x_labels)
+
+        self.autolabel(rects)
+        fig.tight_layout()
+        plt.show()
+
 
 class BBox(collections.namedtuple(
         'BBox', ['xmin', 'ymin', 'xmax', 'ymax'])):
@@ -157,8 +191,7 @@ class ObjectsDetectionOpenCV:
                 break
         video.release()
         cv2.destroyAllWindows()
-        print("Inf average: {0}".format(self.list_average()))
-        print("FPS average: {0}".format(self.fps_average()))
+        return self.list_average()*1000, self.fps_average()
 
 class ObjectsDetectionV4L2:
     def __init__(self):
@@ -548,5 +581,4 @@ class ObjectsDetectionGStreamer:
                                         appsink_size=inference_size,
                                         videosrc=self.videosrc)
 
-        print("Inf average: {0}".format(self.list_average()))
-        print("FPS average: {0}".format(self.fps_average()))
+        return self.list_average()*1000, self.fps_average()
