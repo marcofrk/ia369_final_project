@@ -218,18 +218,18 @@ class ObjectsDetectionV4L2:
         return round(sum(self.interpreter.get_time_average()) / len(self.interpreter.get_time_average()), 3)
 
     def v4l2_video_pipeline(self):
-        leaky="leaky=downstream max-size-buffers=1"
+        leaky=" max-size-buffers=1"
         sync="""sync=false drop=True max-buffers=1
              emit-signals=True max-lateness=8000000000"""
 
-        return (("""filesrc location={} ! decodebin ! queue {} ! videoconvert !
+        return (("""filesrc location={} ! qtdemux name=demux  demux.video_0
+                    ! queue ! decodebin ! queue {} ! videoconvert ! video/x-raw,format=BGR !
                     appsink {}""").format(self.video, leaky, sync))
 
     def run(self):
         self.start()
 
-        video = cv2.VideoCapture("filesrc location=../data/video/Home-And-Away.mp4 ! decodebin ! videoconvert ! appsink")
-        #self.v4l2_video_pipeline())
+        video = cv2.VideoCapture(self.v4l2_video_pipeline())
         print(video)
         if (not video) or (not video.isOpened()):
             sys.exit("Your video device could not be found. Exiting...")
@@ -353,16 +353,6 @@ class GstPipeline:
                 if self.overlaysink:
                     self.overlaysink.set_property('svg', svg)
 
-def video_file_pipeline(video_src):
-    PIPELINE = 'filesrc location=%s ! decodebin' % video_src
-    PIPELINE += """ ! tee name=t
-        t. ! {leaky_q} ! videoconvert ! {scale_caps} ! videobox name=box autocrop=true
-           ! {sink_caps} ! {sink_element}
-        t. ! queue ! videoconvert
-           ! rsvgoverlay name=overlay ! autovideosink
-    """
-    return PIPELINE
-
 def run_pipeline(user_function,
                  src_size,
                  appsink_size,
@@ -375,10 +365,25 @@ def run_pipeline(user_function,
     scale = tuple(int(x * scale) for x in src_size)
     scale_caps = 'video/x-raw,width={width},height={height}'.format(
         width=scale[0], height=scale[1])
-    PIPELINE = video_file_pipeline(videosrc)
+
+    PIPELINE = """filesrc location=%s ! qtdemux name=demux  demux.video_0
+                    ! queue ! decodebin  ! videorate
+                    ! videoconvert n-threads=4 ! videoscale n-threads=4
+                    ! {src_caps} ! {leaky_q} """ % (videosrc)
+
+    PIPELINE += """ ! tee name=t
+            t. ! {leaky_q} ! videoconvert ! videoscale ! {scale_caps} ! videobox name=box autocrop=true
+               ! {sink_caps} ! {sink_element}
+            t. ! queue ! videoconvert
+               ! rsvgoverlay name=overlay ! videoconvert ! ximagesink sync=false
+            """
+
+    SINK_ELEMENT = 'appsink name=appsink emit-signals=true max-buffers=1 drop=true'
+    SINK_CAPS = 'video/x-raw,format=RGB,width={width},height={height}'
+    LEAKY_Q = 'queue max-size-buffers=1 leaky=downstream'
 
     SRC_CAPS = 'video/x-raw,width={width},height={height},framerate=30/1'
-    SINK_ELEMENT = 'appsink name=appsink emit-signals=true max-buffers=1 drop=true'
+    SINK_ELEMENT = 'appsink name=appsink emit-signals=true max-buffers=1 drop=true sync=false'
     SINK_CAPS = 'video/x-raw,format=RGB,width={width},height={height}'
     LEAKY_Q = 'queue max-size-buffers=1 leaky=downstream'
 
