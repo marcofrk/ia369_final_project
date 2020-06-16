@@ -61,6 +61,8 @@ class ObjectsDetectionOpenCV:
         self.model = "../data/model/mobilenet_ssd_v2_coco_quant_postprocess.tflite"
         self.label = "../data/model/coco_labels.txt"
 
+        self.fps_value = []
+
     def set_input(self, image, resample=Image.NEAREST):
         image = image.resize((self.input_image_size()[0:2]), resample)
         self.input_tensor()[:, :] = image
@@ -123,6 +125,9 @@ class ObjectsDetectionOpenCV:
     def list_average(self):
         return round(sum(self.interpreter.get_time_average()) / len(self.interpreter.get_time_average()), 3)
 
+    def fps_average(self):
+        return round(sum(self.fps_value) / len(self.fps_value), 3)
+
     def run(self):
         self.start()
 
@@ -131,6 +136,7 @@ class ObjectsDetectionOpenCV:
             sys.exit("Your video device could not be found. Exiting...")
 
         while video.isOpened():
+            start = cv2.getTickCount();
             ret, frame = video.read()
             if not ret:
                 break
@@ -143,12 +149,16 @@ class ObjectsDetectionOpenCV:
             objs = self.get_output()
             opencv_im = self.append_objs_to_img(opencv_im, objs)
 
+            fps = float(cv2.getTickFrequency() / (cv2.getTickCount()- start))
+            print(fps)
+            self.fps_value.append(fps)
             cv2.imshow("OpenCV V4L2", opencv_im)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         video.release()
         cv2.destroyAllWindows()
         print("Inf average: {0}".format(self.list_average()))
+        print("FPS average: {0}".format(self.fps_average()))
 
 class ObjectsDetectionV4L2:
     def __init__(self):
