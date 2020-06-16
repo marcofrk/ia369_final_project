@@ -215,9 +215,6 @@ class ObjectsDetectionV4L2:
         self.tensor = self.interpreter.interpreter.tensor
         self.label = self.load_labels(self.label)
 
-    def list_average(self):
-        return round(sum(self.interpreter.get_time_average()) / len(self.interpreter.get_time_average()), 3)
-
     def v4l2_video_pipeline(self):
         leaky=" max-size-buffers=1"
         sync="""sync=false drop=True max-buffers=1
@@ -376,7 +373,7 @@ def run_pipeline(user_function,
             t. ! {leaky_q} ! videoconvert ! videoscale ! {scale_caps} ! videobox name=box autocrop=true
                ! {sink_caps} ! {sink_element}
             t. ! queue ! videoconvert
-               ! rsvgoverlay name=overlay ! videoconvert ! ximagesink sync=false
+               ! rsvgoverlay name=overlay ! videoconvert ! ximagesink
             """
 
     SINK_ELEMENT = 'appsink name=appsink emit-signals=true max-buffers=1 drop=true'
@@ -499,6 +496,9 @@ class ObjectsDetectionGStreamer:
         return [make_boxes(i, boxes, category, scores) \
                 for i in range(top_k) if scores[i] >= score_threshold]
 
+    def list_average(self):
+        return round(sum(self.inf_time) / len(self.inf_time), 3)
+
     def start(self):
         os.environ['VSI_NN_LOG_LEVEL'] = "0"
         self.interpreter = TFLiteInterpreter(self.model)
@@ -518,10 +518,11 @@ class ObjectsDetectionGStreamer:
             self.interpreter.run_inference()
             objs = self.get_output()
             end_time = time.monotonic()
-            text_lines = ['Inference: {:.2f} ms'.format((end_time-start_time) \
+            inf = end_time-start_time
+            text_lines = ['Inference: {:.2f} ms'.format(inf \
                                                         * 1000),
                           'FPS: {} fps'.format(round(next(fps_counter))),]
-            self.inf_time.append(end_time-start_time*1000)
+            self.inf_time.append(inf)
             return self.generate_svg(src_size, inference_size, inference_box,
                                      objs, labels, text_lines)
 
@@ -530,3 +531,5 @@ class ObjectsDetectionGStreamer:
                                                   self.src_height),
                                         appsink_size=inference_size,
                                         videosrc=self.videosrc)
+
+        print("Inf average: {0}".format(self.list_average()))
