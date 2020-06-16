@@ -15,6 +15,7 @@ from gi.repository import Gst
 
 import collections
 import re
+import sys
 import cv2
 import numpy as np
 from PIL import Image
@@ -106,6 +107,9 @@ class ObjectsDetectionOpenCV:
         self.tensor = self.interpreter.interpreter.tensor
         self.label = self.load_labels(self.label)
 
+    def list_average(self):
+        return round(sum(self.interpreter.get_time_average()) / len(self.interpreter.get_time_average()), 3)
+
     def run(self):
         self.start()
 
@@ -131,3 +135,4 @@ class ObjectsDetectionOpenCV:
                 break
         video.release()
         cv2.destroyAllWindows()
+        print("Inf average: {0}".format(self.list_average()))

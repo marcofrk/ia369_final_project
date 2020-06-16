@@ -18,6 +18,7 @@ from tflite_runtime.interpreter import Interpreter
 class InferenceTimer:
     def __init__(self):
         self.time = 0
+        self.int_time = 0
 
     @contextmanager
     def timeit(self, message: str = None):
@@ -30,6 +31,7 @@ class InferenceTimer:
             print("{0}: {1}".format(message, self.time))
 
     def convert(self, elapsed):
+        self.int_time = elapsed
         self.time = str(timedelta(seconds=elapsed))
 
 class TFLiteInterpreter:
@@ -38,6 +40,7 @@ class TFLiteInterpreter:
         self.input_details = None
         self.output_details = None
         self.inference_time = None
+        self.time_to_print = []
 
         if model is not None:
             self.interpreter = Interpreter(model)
@@ -66,8 +69,12 @@ class TFLiteInterpreter:
     def set_tensor(self, image):
         self.interpreter.set_tensor(self.input_details[0]['index'], image)
 
+    def get_time_average(self):
+        return self.time_to_print
+
     def run_inference(self):
         timer = InferenceTimer()
         with timer.timeit("Inference time"):
             self.interpreter.invoke()
         self.inference_time = timer.time
+        self.time_to_print.append(timer.int_time)
