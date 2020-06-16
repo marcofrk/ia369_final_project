@@ -2,10 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 FROM python:3.6.3
-FROM ubuntu:18.04
+FROM tensorflow/tensorflow:latest-py3
 
 RUN apt-get update -y
-RUN apt-get install -y build-essential python3-pip python3-dev
+RUN apt-get install -y build-essential python3-pip python3-dev wget
+RUN apt-get install -y python3-setuptools
 
 RUN pip3 install --upgrade pip
 
@@ -33,11 +34,14 @@ RUN apt-get install -y python3-cairo \
 RUN pip3 install jupyter
 RUN pip3 install pycairo PyGObject opencv-python
 
+RUN wget https://dl.google.com/coral/python/tflite_runtime-2.1.0.post1-cp36-cp36m-linux_x86_64.whl
+RUN pip3 install tflite_runtime-2.1.0.post1-cp36-cp36m-linux_x86_64.whl
+
 RUN mkdir src
 WORKDIR src/
 COPY . .
 
-WORKDIR /src/deliver/
+WORKDIR /src
 
 # Add Tini. Tini operates as a process subreaper for jupyter. This prevents kernel crashes.
 ENV TINI_VERSION v0.6.0
