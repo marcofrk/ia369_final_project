@@ -409,6 +409,7 @@ class ObjectsDetectionGStreamer:
         self.src_height = 480
 
         self.inf_time = []
+        self.fps_value = []
 
     def video_config(self):
         if self.args.video_src and self.args.video_src.startswith("/dev/video"):
@@ -499,6 +500,9 @@ class ObjectsDetectionGStreamer:
     def list_average(self):
         return round(sum(self.inf_time) / len(self.inf_time), 3)
 
+    def fps_average(self):
+        return round(sum(self.fps_value) / len(self.fps_value), 3)
+
     def start(self):
         os.environ['VSI_NN_LOG_LEVEL'] = "0"
         self.interpreter = TFLiteInterpreter(self.model)
@@ -519,10 +523,12 @@ class ObjectsDetectionGStreamer:
             objs = self.get_output()
             end_time = time.monotonic()
             inf = end_time-start_time
+            fps = round(next(fps_counter))
             text_lines = ['Inference: {:.2f} ms'.format(inf \
                                                         * 1000),
-                          'FPS: {} fps'.format(round(next(fps_counter))),]
+                          'FPS: {} fps'.format(fps),]
             self.inf_time.append(inf)
+            self.fps_value.append(float(fps))
             return self.generate_svg(src_size, inference_size, inference_box,
                                      objs, labels, text_lines)
 
@@ -533,3 +539,4 @@ class ObjectsDetectionGStreamer:
                                         videosrc=self.videosrc)
 
         print("Inf average: {0}".format(self.list_average()))
+        print("FPS average: {0}".format(self.fps_average()))
