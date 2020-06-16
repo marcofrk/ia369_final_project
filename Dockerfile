@@ -33,7 +33,7 @@ RUN apt-get install -y python3-cairo \
 		python3-dev
 
 RUN pip3 install jupyter
-RUN pip3 install pycairo PyGObject opencv-python
+RUN pip3 install pycairo PyGObject opencv-python svgwrite
 
 RUN wget https://dl.google.com/coral/python/tflite_runtime-2.1.0.post1-cp36-cp36m-linux_x86_64.whl
 RUN pip3 install tflite_runtime-2.1.0.post1-cp36-cp36m-linux_x86_64.whl

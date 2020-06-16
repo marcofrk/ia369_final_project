@@ -25,6 +25,7 @@ import collections
 import os
 import re
 import sys
+import time
 import cv2
 import numpy as np
 from PIL import Image
@@ -410,6 +411,8 @@ class ObjectsDetectionGStreamer:
         self.src_width = 640
         self.src_height = 480
 
+        self.inf_time = []
+
     def video_config(self):
         if self.args.video_src and self.args.video_src.startswith("/dev/video"):
             self.videosrc = self.args.video_src
@@ -493,7 +496,7 @@ class ObjectsDetectionGStreamer:
         boxes = self.output_tensor(0)
         category = self.output_tensor(1)
         scores = self.output_tensor(2)
-        return [gstreamer.make_boxes(i, boxes, category, scores) \
+        return [make_boxes(i, boxes, category, scores) \
                 for i in range(top_k) if scores[i] >= score_threshold]
 
     def start(self):
@@ -518,6 +521,7 @@ class ObjectsDetectionGStreamer:
             text_lines = ['Inference: {:.2f} ms'.format((end_time-start_time) \
                                                         * 1000),
                           'FPS: {} fps'.format(round(next(fps_counter))),]
+            self.inf_time.append(end_time-start_time*1000)
             return self.generate_svg(src_size, inference_size, inference_box,
                                      objs, labels, text_lines)
 
