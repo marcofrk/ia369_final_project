@@ -31,6 +31,9 @@ from PIL import Image
 
 from inference import TFLiteInterpreter
 
+GObject.threads_init()
+Gst.init(None)
+
 Object = collections.namedtuple('Object', ['id', 'score', 'bbox'])
 
 class BBox(collections.namedtuple(

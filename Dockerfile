@@ -21,7 +21,8 @@ RUN apt-get install -y pkg-config \
 
 RUN apt-get install -y gstreamer1.0-plugins-bad \
 		gstreamer1.0-plugins-good \
-		gstreamer1.0-plugins-ugly
+		gstreamer1.0-plugins-ugly \
+		gstreamer1.0-libav
 
 RUN apt-get install -y python3-cairo \
 		python3-gi \
