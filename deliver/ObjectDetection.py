@@ -186,7 +186,7 @@ class ObjectsDetectionOpenCV:
             fps = float(cv2.getTickFrequency() / (cv2.getTickCount()- start))
             print(fps)
             self.fps_value.append(fps)
-            cv2.imshow("OpenCV V4L2", opencv_im)
+            cv2.imshow("OpenCV V4L2 - Use `q` to close.", opencv_im)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         video.release()
@@ -294,6 +294,212 @@ class ObjectsDetectionV4L2:
         video.release()
         cv2.destroyAllWindows()
         print("Inf average: {0}".format(self.list_average()))
+
+
+class ObjectsDetectionAppsrc:
+    def __init__(self):
+        self.video = "../data/video/Home-And-Away.mp4"
+        self.model = "../data/model/mobilenet_ssd_v2_coco_quant_postprocess.tflite"
+        self.label = "../data/model/coco_labels.txt"
+        self.appsource = None
+        self.sink_pipeline = None
+        self.src_pipeline = None
+
+        self.inf_time = []
+        self.fps_value = []
+
+    def dictionary(self):
+        with open(self.label) as f:
+            i = 0
+            for line in f:
+                _id = line.split()
+                self.class_names_dict[np.float32(_id[0])] = i
+                i = i + 1
+
+    def set_input(self, image, resample=Image.NEAREST):
+        image = image.resize((self.input_image_size()[0:2]), resample)
+        self.input_tensor()[:, :] = image
+
+    def process_image(self, image):
+        self.interpreter.set_tensor(np.expand_dims(image, axis=0))
+        self.interpreter.run_inference()
+
+        positions = self.interpreter.get_tensor(0, squeeze=True)
+        classes = self.interpreter.get_tensor(1, squeeze=True)
+        scores = self.interpreter.get_tensor(2, squeeze=True)
+
+        result = []
+        for idx, score in enumerate(scores):
+            if score > 0.5:
+                result.append({'pos': positions[idx], '_id': classes[idx]})
+        return result
+
+    def input_image_size(self):
+        return self.interpreter.input_details[0]['shape'][1:]
+
+    def input_tensor(self):
+        return self.tensor(self.interpreter.input_details[0]['index'])()[0]
+
+    def output_tensor(self, i):
+        output_data = np.squeeze(self.tensor(
+                                 self.interpreter.output_details[i]['index'])())
+        if 'quantization' not in self.interpreter.output_details:
+            return output_data
+        scale, zero_point = self.interpreter.output_details['quantization']
+        if scale == 0:
+            return output_data - zero_point
+        return scale * (output_data - zero_point)
+
+    def load_labels(self, path):
+        p = re.compile(r'\s*(\d+)(.+)')
+        with open(path, 'r', encoding='utf-8') as f:
+            lines = (p.match(line).groups() for line in f.readlines())
+            return {int(num): text.strip() for num, text in lines}
+
+    def get_output(self, score_threshold=0.1, top_k=3, image_scale=1.0):
+        boxes = self.output_tensor(0)
+        class_ids = self.output_tensor(1)
+        scores = self.output_tensor(2)
+        count = int(self.output_tensor(3))
+
+        return [make_boxes(i, boxes, class_ids, scores) for i in range(top_k) \
+                if scores[i] >= score_threshold]
+
+    def append_objs_to_img(self, opencv_im, objs):
+        height, width, channels = opencv_im.shape
+        for obj in objs:
+            x0, y0, x1, y1 = list(obj.bbox)
+            x0 = int(x0 * width)
+            y0 = int(y0 * height)
+            x1 = int(x1 * width)
+            y1 = int(y1 * height)
+
+            percent = int(100 * obj.score)
+            label = '{}% {}'.format(percent, self.label.get(obj.id, obj.id))
+
+            opencv_im = cv2.rectangle(opencv_im, (x0, y0), (x1, y1),
+                                      (0, 255, 0), 2)
+            opencv_im = cv2.putText(opencv_im, label, (x0, y0 + 30),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 1.0,
+                                    (255, 0, 0), 2)
+        return opencv_im
+
+    def avg_fps_counter(self, window_size):
+        window = collections.deque(maxlen=window_size)
+        prev = time.monotonic()
+        yield 0.0
+
+        while True:
+            curr = time.monotonic()
+            window.append(curr - prev)
+            prev = curr
+            yield len(window) / sum(window)
+
+    def list_average(self):
+        return round(sum(self.inf_time) / len(self.inf_time), 3)
+
+    def fps_average(self):
+        return round(sum(self.fps_value) / len(self.fps_value), 3)
+
+    def set_appsink_video_pipeline(self, device,
+                            leaky="leaky=downstream max-size-buffers=1",
+                            sync="drop=True max-buffers=1 emit-signals=True max-lateness=8000000000"):
+
+        return (("filesrc location={} ! qtdemux name=d d.video_0 ! \
+                    queue ! decodebin ! videorate ! videoconvert ! \
+                    videoscale n-threads=4 method=nearest-neighbour ! \
+                    video/x-raw,format=RGB,width=640,height=480 ! \
+                    queue {} ! appsink name=sink {}"
+                ).format(device,
+                        leaky, sync))
+
+    def set_appsrc_pipeline(self, width=640, height=480):
+        return (("appsrc name=src is-live=True block=True ! \
+                    video/x-raw,format=RGB,width=640,height=480, \
+                    framerate=30/1,interlace-mode=(string)progressive ! \
+                    videoconvert ! ximagesink"
+            ).format(width, height))
+
+    def on_new_frame(self, sink):
+        sample = sink.emit("pull-sample")
+        caps = sample.get_caps().get_structure(0)
+        resize = (caps.get_value('height'), caps.get_value('width'), 3)
+
+        mem = sample.get_buffer()
+        _, arr = mem.map(Gst.MapFlags.READ)
+        img = np.ndarray(resize, buffer=arr.data, dtype=np.uint8)
+
+        opencv_im = img
+        opencv_im_rgb = cv2.cvtColor(opencv_im, cv2.COLOR_BGR2RGB)
+        pil_im = Image.fromarray(opencv_im_rgb)
+        self.set_input(pil_im)
+        objs = self.get_output()
+        self.append_objs_to_img(opencv_im, objs)
+        self.appsource.emit("push-buffer", Gst.Buffer.new_wrapped(img.tobytes()))
+        mem.unmap(arr)
+
+        return Gst.FlowReturn.OK
+
+    def start(self):
+        self.interpreter = TFLiteInterpreter(self.model)
+        self.tensor = self.interpreter.interpreter.tensor
+        self.label = self.load_labels(self.label)
+
+        self.sink = self.set_appsink_video_pipeline(self.video)
+        self.src = self.set_appsrc_pipeline()
+
+    def run(self):
+        self.start()
+        self.sink_pipeline = Gst.parse_launch(self.sink)
+        appsink = self.sink_pipeline.get_by_name('sink')
+        appsink.connect("new-sample", self.on_new_frame)
+
+        self.src_pipeline = Gst.parse_launch(self.src)
+        self.appsource = self.src_pipeline.get_by_name('src')
+
+        self.sink_pipeline.set_state(Gst.State.PLAYING)
+        bus1 = self.sink_pipeline.get_bus()
+        self.src_pipeline.set_state(Gst.State.PLAYING)
+        bus2 = self.src_pipeline.get_bus()
+
+        fps_counter = self.avg_fps_counter(30)
+
+        while True:
+            start_time = time.monotonic()
+
+            message = bus1.timed_pop_filtered(10000, Gst.MessageType.ANY)
+            if message:
+                if message.type == Gst.MessageType.ERROR:
+                    err, debug = message.parse_error()
+                    self.sink_pipeline.set_state(Gst.State.NULL)
+                    self.src_pipeline.set_state(Gst.State.NULL)
+                    sys.exit("ERROR bus 1: {}: {}".format(err, debug))
+
+                if message.type == Gst.MessageType.WARNING:
+                    err, debug = message.parse_warning()
+                    print("WARNING bus 1: {}: {}".format(err, debug))
+
+            message = bus2.timed_pop_filtered(10000, Gst.MessageType.ANY)
+            if message:
+                if message.type == Gst.MessageType.ERROR:
+                    err, debug = message.parse_error()
+                    self.sink_pipeline.set_state(Gst.State.NULL)
+                    self.src_pipeline.set_state(Gst.State.NULL)
+                    sys.exit("ERROR bus 2: {}: {}".format(err, debug))
+
+                if message.type == Gst.MessageType.WARNING:
+                    err, debug = message.parse_warning()
+                    print("WARNING bus 2: {}: {}".format(err, debug))
+            end_time = time.monotonic()
+            inf = end_time-start_time
+            fps = round(next(fps_counter))
+            text_lines = ['Inference: {:.2f} ms'.format(inf \
+                                                        * 1000),
+                          'FPS: {} fps'.format(fps),]
+            self.inf_time.append(inf)
+            self.fps_value.append(float(fps))
+
+        return self.list_average()*1000, self.fps_average()
 
 class GstPipeline:
     def __init__(self, pipeline, user_function, src_size):
