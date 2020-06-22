@@ -38,15 +38,18 @@ This tutorial is fully based on GNU/Linux Distribution `Ubuntu 18.04` as host ma
 ### Execute the Paper
 Run the docker image:
 ```console
+$ xhost +
 # docker run -it --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -p 8888:8888 ml-experience
 ```
 Click at the returned link (127.0.0.1), as shown at the image below:
 ![img](data/images/docker_run.png)
 
+The Notebook can be found on `deliver/improving-machine-learning-experience.ipynb`.
+
 **NOTE:**
 *Due to the X server security reasons, docker will not be able to display the video at the
-created screen. It will not impact at the results, but can be frustated.
-I am working to fix it!*
+created screen. It will not impact at the results, but can be frustrated.
+Plus, be sure to use sudo privilege when required.*
 
 [data]: https://github.com/marcofrk/ia369_final_project/tree/master/data
 [deliver]: https://github.com/marcofrk/ia369_final_project/tree/master/deliver
