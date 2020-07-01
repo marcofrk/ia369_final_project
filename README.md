@@ -38,8 +38,16 @@ This tutorial is fully based on GNU/Linux Distribution `Ubuntu 18.04` as host ma
 ### Execute the Paper
 Run the docker image:
 ```console
-$ xhost +
-# docker run -it --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -p 8888:8888 ml-experience
+# docker run -it --rm --user=$(id -u $USER):$(id -g $USER) \
+    --env="DISPLAY" \
+    --workdir="/home/$USER" \
+    --volume="/home/$USER:/home/$USER" \
+    --volume="/etc/group:/etc/group:ro" \
+    --volume="/etc/passwd:/etc/passwd:ro" \
+    --volume="/etc/shadow:/etc/shadow:ro" \
+    --volume="/etc/sudoers.d:/etc/sudoers.d:ro" \
+    --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+    -p 8888:8888 ml-experience
 ```
 Click at the returned link (127.0.0.1), as shown at the image below:
 ![img](data/images/docker_run.png)
