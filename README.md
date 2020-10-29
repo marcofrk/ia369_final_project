@@ -57,7 +57,7 @@ The Notebook can be found on `deliver/improving-machine-learning-experience.ipyn
 **NOTE:**
 *Due to the X server security reasons, docker will not be able to display the video at the
 created screen. It will not impact at the results, but can be frustrated.
-Plus, be sure to use sudo privilege when required.*
+Plus, be sure to use sudo privilege when required!*
 
 [data]: https://github.com/marcofrk/ia369_final_project/tree/master/data
 [deliver]: https://github.com/marcofrk/ia369_final_project/tree/master/deliver
